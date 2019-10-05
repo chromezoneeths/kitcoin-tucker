@@ -16,7 +16,7 @@ services:
     links:
       - "sqldb"
     environment:
-      - DATABASE_ADDRESS=sqldb
+      - DATABASE_ADDRESS=kitcoin-node_sqldb_1
       - DATABASE_USER=kitcoin
       - DATABASE_PORT=33060
       - DATABASE_PASSWORD=please-change-this
