@@ -1,0 +1,19 @@
+{
+  "name": "kitcoin-node",
+  "version": "0.0.1",
+  "description": "A backend server for Kitcoin.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chromezoneeths/kitcoin-node.git"
+  },
+  "author": "CodETHS Team",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/chromezoneeths/kitcoin-node/issues"
+  },
+  "homepage": "https://github.com/chromezoneeths/kitcoin-node#readme"
+}

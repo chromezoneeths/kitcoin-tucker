@@ -1,0 +1,26 @@
+version: '2'
+services:
+  sqldb:
+    image: "mysql"
+    environment:
+      - MYSQL_ROOT_PASSWORD=%%&change-this-please
+      - MYSQL_DATABASE=kitcoin
+      - MYSQL_USER=kitcoin
+      - MYSQL_PASSWORD=please-change-this
+    volumes:
+      - "kitcoindbvolume:/var/lib/mysql"
+  kitcoin-main:
+    build: .
+    ports:
+      - "9876:9876"
+    links:
+      - "sqldb"
+    environment:
+      - DATABASE_ADDRESS=sqldb
+      - DATABASE_USER=kitcoin
+      - DATABASE_PORT=33060
+      - DATABASE_PASSWORD=please-change-this
+      - WAIT_TO_CONNECT=1
+      - OAUTH_CALLBACK_URL=http://127.0.0.1:9876
+volumes:
+  kitcoindbvolume:
