@@ -25,4 +25,4 @@ Administering this software is admittedly a bit ugly; you'll need to run `docker
 
 * To make a user an administrator, run `USE kitcoin; UPDATE users SET admin=b'1' WHERE address='your-email-goes-here'`. Replace `b'1'` with `b'0'` to revoke administrative privileges. Currently this only restricts minting and voiding.
 * To list users, run `USE kitcoin; SELECT * FROM users`.
-* Other, more user-friendly administrative tools are in development.
+* Other, more user-friendly administrative tools are in development. To use this software, you'll want to set the `ENABLE_REMOTE` environment variable to 1, then attempt a connection as normal, then send the `elevate` action.

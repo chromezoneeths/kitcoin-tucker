@@ -1,5 +1,6 @@
 const conf = require('./config')
 const db = require('./db');
+const ad = require('./admin');
 const google = require('./google');
 const googleapis = require('googleapis').google;
 const {promisify} = require('util');
@@ -210,6 +211,26 @@ async function session(ws){
             break;
           }
           case "oauthInfo":{}
+          case "elevate":{
+            if(!admin){
+              console.log(`RECORDS, WARNING: UNAUTHORIZED USER ${name} ATTEMPTS ELEVATED ACTION ${message.procedure} WITH BODY ${message.body}`);
+              ws.send(JSON.stringify({
+                action: "elevateResponse",
+                status: "denied"
+              }))
+              return;
+            } else {
+              console.log(`RECORDS, LOGGING: USER ${name} EXECUTES ELEVATED ACTION ${message.procedure} WITH BODY ${message.body}`);
+              ad.handle(message, ws).catch((re)=>{
+                ws.send(JSON.stringify({
+                  action: "elevateResponse",
+                  status: "error",
+                  contents:re
+                }))
+              })
+            }
+            break;
+          }
           default:
             console.error("Received invalid action call.");
         }

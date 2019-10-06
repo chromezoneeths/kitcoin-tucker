@@ -18,8 +18,8 @@ exports.init = ()=>{
       sess.sql(`CREATE TABLE IF NOT EXISTS users (uuid VARCHAR(36), address VARCHAR(96), name VARCHAR(128), admin BIT(1), teacher BIT(1), vendor BIT(1))`).execute()
     ])
     console.log("Done initializing database.");
-    sess.close()
     r()
+    sess.close()
   })
 }
 exports.addUser = (id, address, name)=>{
@@ -27,8 +27,8 @@ exports.addUser = (id, address, name)=>{
     var sess = await client.getSession()
     await sess.sql('USE kitcoin').execute()
     await sess.sql(`INSERT INTO users (uuid,address,name) VALUES ('${id}','${address}','${name}')`).execute()
-    sess.close()
     r()
+    sess.close()
   })
 }
 exports.addTransaction = (sender, recipient, amount)=>{
@@ -37,6 +37,7 @@ exports.addTransaction = (sender, recipient, amount)=>{
     await sess.sql("use kitcoin").execute()
     await sess.sql(`INSERT INTO transactions (uuid, sender, recipient, amount) VALUES ('${uuid()}', '${sender}', '${recipient}', '${amount}')`).execute()
     r()
+    sess.close()
   })
 }
 exports.getBalance = (uuid)=>{
@@ -58,9 +59,11 @@ exports.getUserByAddress = (address)=>{
     var users = sess.getSchema('kitcoin').getTable("users")
     await users.select().where(`address='${address}'`).execute((i)=>{
       r(i)
+      sess.close()
       return
     })
     r()
+    sess.close()
   })
 }
 exports.getUserByID = (uuid)=>{
@@ -71,5 +74,62 @@ exports.getUserByID = (uuid)=>{
       r(i)
     })
     r()
+    sess.close()
+  })
+}
+exports.listUsers = ()=>{
+  return new Promise(async (r,rj)=>{
+    var sess = await client.getSession()
+    var users = sess.getSchema('kitcoin').getTable('users')
+    var results = []
+    await users.select().execute((i)=>{
+      results.push(i)
+    })
+    r(results)
+    sess.close()
+  })
+}
+exports.listTransactions = ()=>{
+  return new Promise(async (r,rj)=>{
+    var sess = await client.getSession()
+    var users = sess.getSchema('kitcoin').getTable('transactions')
+    var results = []
+    await users.select().execute((i)=>{
+      results.push(i)
+    })
+    r(results)
+    sess.close()
+  })
+}
+exports.grant = (id,permission)=>{
+  return new Promise(async (r,rj)=>{
+    if(!['admin','teacher','vendor'].includes(permission)) rj("Invalid permission")
+    var sess = await client.getSession()
+    await sess.sql('use kitcoin')
+    if(/[A-Za-z0-9]*\@[A-Za-z0-9]*\.[a-z]{3}/.test(id)){
+      // 'id' is an email address
+      await sess.sql(`UPDATE users SET ${permission}=b'1' WHERE address='${id}'`).execute()
+    } else {
+      // 'id' is a UUID
+      await sess.sql(`UPDATE users SET ${permission}=b'1' WHERE uuid='${id}'`).execute()
+    }
+    r()
+    sess.close()
+  })
+}
+exports.degrant = (id,permission)=>{
+  return new Promise(async (r,rj)=>{
+    if(!['admin','teacher','vendor'].includes(permission)) rj("Invalid permission")
+    var sess = await client.getSession()
+    await sess.sql('use kitcoin')
+    if(/[A-Za-z0-9]*\@[A-Za-z0-9]*\.[a-z]{3}/.test(id)){
+      // 'id' is an email address
+      await sess.sql(`UPDATE users SET ${permission}=b'0' WHERE address='${id}'`).execute()
+    } else {
+      // 'id' is a UUID
+      await sess.sql(`UPDATE users SET ${permission}=b'0' WHERE uuid='${id}'`).execute()
+    }
+    r()
+    sess.close()
   })
 }

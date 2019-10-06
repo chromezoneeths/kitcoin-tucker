@@ -22,5 +22,6 @@ services:
       - DATABASE_PASSWORD=please-change-this
       - WAIT_TO_CONNECT=1
       - OAUTH_CALLBACK_URL=http://127.0.0.1:9876
+      - ENABLE_REMOTE=1
 volumes:
   kitcoindbvolume:
