@@ -24,7 +24,7 @@ function wsSetup(){
   return new Promise((r,rj)=>{
     wss = new WebSocket.Server({noServer:true})
     wss.on('connection', session)
-    console.log("WebSocket server ready");
+    console.log("RECORDS, LOGGING: Websockets ready");
   })
 }
 function httpsSetup(){
@@ -39,7 +39,6 @@ function httpsSetup(){
   })
 }
 async function session(ws){
-  console.log("New session, waiting 100 ms");
   await sleep(200)
   var auth = await google.prepare(ws)
   var peopleAPI = googleapis.people({
@@ -51,24 +50,20 @@ async function session(ws){
     auth:auth.auth
   })
   var user = await peopleAPI.people.get({resourceName:'people/me',personFields:'emailAddresses,names'})
-  console.log(`User ${user.data.names[0].displayName} has connected with email ${user.data.emailAddresses[0].value}.`);
+  console.log(`RECORDS, LOGGING: User ${user.data.names[0].displayName} has connected with email ${user.data.emailAddresses[0].value}.`);
   var userQuery = await db.getUserByAddress(user.data.emailAddresses[0].value)
   var userID, address, name, admin
   if(userQuery != undefined){
-    console.log("This user already exists in the users table.");
-    console.log(userQuery);
     userID = userQuery[0]
     address = userQuery[1]
     name = userQuery[2]
     admin = userQuery[3] == 1
   } else {
-    console.log("This user is absent from the users table. Adding them...");
     userID = uuid()
     admin = false // To make a user admin, run `UPDATE users SET admin=b'1' WHERE address='email';`
     var addUserQuery = await db.addUser(userID, user.data.emailAddresses[0].value, user.data.names[0].displayName)
     address = user.data.emailAddresses[0].value
     name = user.data.names[0].displayName
-    console.log("Done");
   }
   ws.send(JSON.stringify({
     action:"ready",
@@ -147,6 +142,7 @@ async function session(ws){
                 action: "mintResponse",
                 status: "denied"
               }))
+              console.log(`RECORDS, WARNING: UNAUTHORIZED USER ${name} ATTEMPTS TO MINT ${message.amount}`);
             }
             break;
           }
@@ -168,6 +164,7 @@ async function session(ws){
                 action: "voidResponse",
                 status: "denied"
               }))
+              console.log(`RECORDS, WARNING: UNAUTHORIZED USER ${name} ATTEMPTS TO VOID ${message.amount}`);
             }
             break;
           }
@@ -232,27 +229,17 @@ async function session(ws){
             break;
           }
           default:
-            console.error("Received invalid action call.");
+            console.error(`RECORDS, WARNING: User ${name} attempts invalid action.`);
         }
+  })
+  ws.on('close', async ()=>{
+    console.log(`RECORDS, LOGGING: User ${name} has disconnected.`);
   })
 }
 async function httpRequest(req, res){
-  console.log(`HTTP request for ${req.url}`);
+  console.log(`RECORDS, LOGGING: HTTP request for ${req.url}`);
   if(req.url.startsWith("/oauth")){
-    console.log("This request looks like an OAuth callback.");
     google.callback(req, res)
-    // const qs = new url.URL(req.url, conf.oauthCallbackUrl)
-    //       .searchParams;
-    // for(var i in pendingOAuthCallbacks){
-    //   if(pendingOAuthCallbacks[i].id == qs.get(`uuid`)){
-    //     console.log(`Received login message ${pendingOAuthCallbacks[i].id}`);
-    //     const {tokens} = await pendingOAuthCallbacks[i].client.getToken(qs.get('code'));
-    //     res.writeHead(200)
-    //     res.end("<script>setTimeout(()=>{window.close()},300)</script>")
-    //     pendingOAuthCallbacks[i].client.credentials = tokens
-    //     pendingOAuthCallbacks[i].reslve({auth:pendingOAuthCallbacks[i].client})
-    //   }
-    // }
   }
   else if(req.url.includes("stage1.js")){
     res.writeHead(200)
@@ -263,7 +250,7 @@ async function httpRequest(req, res){
     res.end(fs.readFileSync('clientjs/stage2.js'))
   }
   else if(req.url.startsWith("/app")){
-    console.log("You've incorrectly proxied the app path to the backend. This is a bug.");
+    console.log("RECORDS, PROBLEM: You've incorrectly proxied the app path.");
   }
 }
 function sleep(ms) {

@@ -36,7 +36,6 @@ exports.prepare = (socket) => { // Blocks until user consents, otherwise doesn't
 }
 exports.callback = async (req, res) => {
   if(req.url.startsWith("/oauthstage1")){
-        console.log("This request looks like an OAuth first stage.");
         res.writeHead(200)
         res.end(`<script src="stage1.js"></script>`)
         // const qs = new url.URL(req.url, conf.oauthCallbackUrl)
@@ -53,17 +52,14 @@ exports.callback = async (req, res) => {
         // }
       }
       else if(req.url.startsWith("/oauthstage2")){
-        console.log("This request looks like an OAuth second stage.");
         res.writeHead(200)
         res.end(`<script src="stage2.js"></script>`)
       }
       else if(req.url.startsWith("/oauthstage3")){
-        console.log("This request looks like an OAuth third stage.");
         const qs = new url.URL(req.url, conf.oauthCallbackUrl)
               .searchParams;
         for(var i in pendingOAuthCallbacks){
           if(pendingOAuthCallbacks[i].id == qs.get(`uuid`)){
-            console.log(`Received login message ${pendingOAuthCallbacks[i].id}`);
             const {tokens} = await pendingOAuthCallbacks[i].client.getToken(qs.get('code'));
             res.writeHead(200)
             res.end("<script>setTimeout(()=>{window.close()},300)</script>")

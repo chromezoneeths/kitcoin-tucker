@@ -5,7 +5,7 @@ const uuid = require('uuid/v4');
 var client
 exports.init = ()=>{
   return new Promise(async (r,rj)=>{
-    console.log("Connecting to " + conf.dbIP);
+    console.log("RECORDS, LOGGING: Connecting to database at " + conf.dbIP);
     client = sqllib.getClient(
       { user:conf.dbUser, password:conf.dbPassword, host:conf.dbIP, port: conf.dbPort },
       { pooling: { enabled: true, maxIdleTime: 30000, maxSize: 25, queueTimeout: 10000 } }
@@ -17,7 +17,7 @@ exports.init = ()=>{
       sess.sql(`CREATE TABLE IF NOT EXISTS transactions (uuid VARCHAR(36), sender VARCHAR(96), recipient VARCHAR(96), amount INTEGER)`).execute(),
       sess.sql(`CREATE TABLE IF NOT EXISTS users (uuid VARCHAR(36), address VARCHAR(96), name VARCHAR(128), admin BIT(1), teacher BIT(1), vendor BIT(1))`).execute()
     ])
-    console.log("Done initializing database.");
+    console.log("RECORDS, LOGGING: Database connection done");
     r()
     sess.close()
   })
