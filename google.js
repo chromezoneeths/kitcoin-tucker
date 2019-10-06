@@ -2,11 +2,14 @@
 const conf = require('./config') // gotta have them inconsistent semicolons amirite
 const uuid = require('uuid/v4');
 const url = require('url');
+const {promisify} = require('util');
 const oauthKeys = require('./oauth_info') // This won't be in the repository; make your own keys in the Google Developer Console.
 const oauthScopes = [
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/userinfo.profile',
-  'https://www.googleapis.com/auth/classroom.courses.readonly'
+  'https://www.googleapis.com/auth/classroom.courses.readonly',
+  'https://www.googleapis.com/auth/classroom.rosters.readonly',
+  'https://www.googleapis.com/auth/classroom.profile.emails'
 ]
 const {google} = require('googleapis');
 var pendingOAuthCallbacks = []
@@ -69,4 +72,18 @@ exports.callback = async (req, res) => {
           }
         }
       }
+}
+exports.getCourses = (classroom) => {
+  return new Promise(async (r,rj)=>{
+    classroom.courses.list({pageSize:0}, (err, res)=>{
+      r({err, res})
+    })
+  })
+}
+exports.getStudents = (classroom, id)=>{
+  return new Promise(async (r,rj)=>{
+    classroom.courses.students.list({courseId:id,pageSize:0}, (err,res)=>{
+      r({err,res})
+    })
+  })
 }

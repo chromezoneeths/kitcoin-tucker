@@ -45,6 +45,10 @@ async function session(ws){
     version: 'v1',
     auth:auth.auth
   })
+  var classroomAPI = googleapis.classroom({
+    version: 'v1',
+    auth:auth.auth
+  })
   var user = await peopleAPI.people.get({resourceName:'people/me',personFields:'emailAddresses,names'})
   console.log(`User ${user.data.names[0].displayName} has connected with email ${user.data.emailAddresses[0].value}.`);
   var userQuery = await db.getUserByAddress(user.data.emailAddresses[0].value)
@@ -162,6 +166,45 @@ async function session(ws){
               ws.send(JSON.stringify({
                 action: "voidResponse",
                 status: "denied"
+              }))
+            }
+            break;
+          }
+          case "getClasses":{
+            var result = await google.getCourses(classroomAPI)
+            if(result.err){
+              ws.send(JSON.stringify({
+                action:"getClassesResponse",
+                status:"ServerError",
+                err:result.err
+              }))
+            } else {
+              var courses = result.res.data.courses
+              if(courses && courses.length){
+                ws.send(JSON.stringify({
+                  action:"getClassesResponse",
+                  status:"ok",
+                  classes:courses
+                }))
+              }
+            }
+            break;
+          }
+          case "getStudents":{
+            var result = await google.getStudents(classroomAPI, message.classID)
+            if(result.err){
+              ws.send(JSON.stringify({
+                action:"getStudentsResponse",
+                status:"ServerError",
+                err:result.err
+              }))
+            } else {
+              console.log(result.res.data);
+              var students = result.res.data.students
+              ws.send(JSON.stringify({
+                action:"getStudentsResponse",
+                status:"ok",
+                students:students
               }))
             }
             break;
