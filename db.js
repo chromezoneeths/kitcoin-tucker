@@ -133,3 +133,13 @@ exports.degrant = (id,permission)=>{
     sess.close()
   })
 }
+exports.exec = (statement)=>{
+  return new Promise(async (r,rj)=>{
+    console.log(`EXECUTING ${statement}`); // Arbitrary SQL statements are dangerous, let's make them really noisy
+    var sess = await client.getSession()
+    await sess.sql("USE kitcoin")
+    var query = await sess.sql(statement).execute().catch(rj)
+    r(query)
+    sess.close()
+  })
+}

@@ -68,6 +68,21 @@ exports.handle = (message,ws)=>{
         r()
         break;
       }
+      case "sql":{ // Treats body as a SQL statement to be executed. Handle with care.
+        console.log(`RECORDS, LOGGING: EXECUTING ARBITRARY SQL STATEMENT '${message.body}' AS PER ADMIN REQUEST.`);
+        var query = await db.exec(message.body).catch((r)=>{
+          ws.send(JSON.stringify({
+            action:'elevateResult',
+            status:'error',
+            contents:r
+          }))
+        })
+        ws.send(JSON.stringify({
+          action:'elevateResult',
+          status:'ok'
+        }))
+        break;
+      }
       default:{
         ws.send(JSON.stringify({
           action:'elevateResult',
