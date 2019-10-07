@@ -13,7 +13,7 @@ This software is deployed using Docker. This *should* make deployment fairly pai
 1. Modify `docker-compose.yml` to your liking. You should at least change `OAUTH_CALLBACK_URL` and the password variables. `OAUTH_CALLBACK_URL` should have any HTTP(S) requests routed to port 9876 on this server.
 2. Create an `oauth_info.json` file with your Google API keys. An example is provided.
 3. Set up a reverse proxy for https support and other fun things that are completely out of scope for this project.
-4. Run `docker-compose up -d --build` to bring up the stack, and hopefully it'll work fine.
+4. Run `docker-compose up -d --build` to bring up the stack, and hopefully it'll work fine. Subsequent runs with no configuration changes or updates can omit the `--build` option, but to update to new versions you'll need it.
 
 ## For Developers
 
