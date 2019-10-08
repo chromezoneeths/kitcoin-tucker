@@ -18,6 +18,8 @@
   "homepage": "https://github.com/chromezoneeths/kitcoin-node#readme",
   "dependencies": {
     "@mysql/xdevapi": "^8.0.17",
+    "@types/uuid": "^3.4.5",
+    "@types/ws": "^6.0.3",
     "googleapis": "^43.0.0",
     "ws": "^7.1.2"
   }
