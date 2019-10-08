@@ -2,7 +2,6 @@
 const conf = require('./config') // gotta have them inconsistent semicolons amirite
 const uuid = require('uuid/v4');
 const url = require('url');
-const {promisify} = require('util');
 const oauthKeys = require('./oauth_info') // This won't be in the repository; make your own keys in the Google Developer Console.
 const oauthScopes = [
   'https://www.googleapis.com/auth/userinfo.email',
@@ -14,7 +13,7 @@ const oauthScopes = [
 const {google} = require('googleapis');
 var pendingOAuthCallbacks = []
 exports.prepare = (socket) => { // Blocks until user consents, otherwise doesn't do anything
-  return new Promise((resolve,rj)=>{
+  return new Promise((resolve)=>{
     var thisOAuthID = uuid()
     var oAuthClient = new google.auth.OAuth2(
       oauthKeys.clientId,
@@ -70,14 +69,14 @@ exports.callback = async (req, res) => {
       }
 }
 exports.getCourses = (classroom) => {
-  return new Promise(async (r,rj)=>{
+  return new Promise(async (r)=>{
     classroom.courses.list({pageSize:0}, (err, res)=>{
       r({err, res})
     })
   })
 }
 exports.getStudents = (classroom, id)=>{
-  return new Promise(async (r,rj)=>{
+  return new Promise(async (r)=>{
     classroom.courses.students.list({courseId:id,pageSize:0}, (err,res)=>{
       r({err,res})
     })
