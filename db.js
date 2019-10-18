@@ -1,158 +1,181 @@
 // This file contains abstractions for database calls. It should do any injection filtering.
-const sqllib = require('@mysql/xdevapi');
+// const sqllib = require('@mysql/xdevapi');
+const MongoClient = require('mongodb').MongoClient
 const conf = require('./config')
 const uuid = require('uuid/v4');
 var client
 exports.init = () => {
   return new Promise(async (r, rj) => {
     console.log("RECORDS, LOGGING: Connecting to database at " + conf.dbIP);
-    client = sqllib.getClient({
-      user: conf.dbUser,
-      password: conf.dbPassword,
-      host: conf.dbIP,
-      port: conf.dbPort
-    }, {
-      pooling: {
-        enabled: true,
-        maxIdleTime: 30000,
-        maxSize: 25,
-        queueTimeout: 10000
-      }
-    })
-    var sess = await client.getSession().catch(rj)
-    await sess.sql("CREATE SCHEMA IF NOT EXISTS kitcoin;").execute()
-    await sess.sql("USE kitcoin").execute()
-    await Promise.all([
-      sess.sql(`CREATE TABLE IF NOT EXISTS transactions (uuid VARCHAR(36), sender VARCHAR(96), recipient VARCHAR(96), amount INTEGER)`).execute(),
-      sess.sql(`CREATE TABLE IF NOT EXISTS users (uuid VARCHAR(36), address VARCHAR(96), name VARCHAR(128), admin BIT(1), teacher BIT(1), vendor BIT(1))`).execute()
-    ])
-    console.log("RECORDS, LOGGING: Database connection done");
-    r()
-    sess.close()
+    client = new MongoClient(conf.dbIP, {useNewUrlParser:true})
+    try {
+      await client.connect();
+      console.log("RECORDS, LOGGING: Connection successful, ensuring everything is ready");
+      const db = client.db('kitcoin');
+      await Promise.all([
+        db.createCollection("users", {
+          'validator': { '$or':[
+            { 'uuid': { '$type':'string' } },
+            { 'address': { '$regex':/[A-Za-z0-9]*\@[A-Za-z0-9]*\.[a-z]*/ } },
+            { 'name': { '$type':'string' } },
+            { 'role': { '$in':['student','teacher','vendor','admin','sadmin'] } }
+          ]}
+        }),
+        db.createCollection("transactions", {
+          'validator': { '$or':[
+            { 'uuid': { '$type':'string' } },
+            { 'timestamp': { '$type':'date' } },
+            { 'sender': { '$type':'string' } },
+            { 'recipient': { '$type':'string' } },
+            { 'amount': { '$type':'int' } }
+          ]}
+        }),
+        db.createCollection("products", {
+          'validator': { '$or':[
+            { 'uuid': { '$type':'string' } },
+            { 'vendor': { '$type':'string' } },
+            { 'name': { '$type':'string' } },
+            { 'description': { '$type':'string' } },
+            { 'price': { '$type':'int' } }
+          ]}
+        })
+      ])
+      console.log("RECORDS, LOGGING: All collections have been created.");
+    } catch (err) {
+      console.log("RECORDS, PROBLEM: Connection failed, printing error and exiting.");
+      console.log(err);
+      console.log(err.stack);
+      process.exit(1) // Can't connect to database to set things up; there's no need to stay alive
+    }
   })
 }
 exports.addUser = (id, address, name) => {
   return new Promise(async (r) => {
-    var sess = await client.getSession()
-    await sess.sql('USE kitcoin').execute()
-    await sess.sql(`INSERT INTO users (uuid,address,name) VALUES ('${id}','${address}','${name}')`).execute()
+    await client.connect()
+    const db = client.db('kitcoin');
+    await db.collection('users').insertOne({
+      uuid:id,
+      address:address,
+      name:name,
+      role:'student'
+    })
     r()
-    sess.close()
   })
 }
 exports.addTransaction = (sender, recipient, amount) => {
   return new Promise(async (r) => {
-    var sess = await client.getSession()
-    await sess.sql("use kitcoin").execute()
-    await sess.sql(`INSERT INTO transactions (uuid, sender, recipient, amount) VALUES ('${uuid()}', '${sender}', '${recipient}', '${amount}')`).execute()
+    await client.connect()
+    const db = client.db('kitcoin')
+    await db.collection('transactions').insertOne({
+      uuid:uuid(),
+      timestamp:(new Date(Date.now())).toISOString(),
+      sender:sender,
+      recipient:recipient,
+      amount:amount
+    })
     r()
-    sess.close()
   })
 }
 exports.getBalance = (uuid) => {
   return new Promise(async (r) => {
     var balance = 0
-    var sess = await client.getSession()
-    var transactions = sess.getSchema('kitcoin').getTable("transactions")
+    await client.connect()
+    const db = client.db('kitcoin')
+    const transactions = db.collection('transactions')
+    const in = await transactions.find({recipient:uuid})
+    const out = await transactions.find({sender:uuid})
     await Promise.all([
-      transactions.select().where(`recipient='${uuid}'`).execute((doc) => {
-        balance += doc[3]
+      new Promise(r=>{
+        while(await in.hasNext()){
+          const doc = await in.next()
+          balance += doc.amount
+        }
+        r()
       }),
-      transactions.select().where(`sender='${uuid}'`).execute((doc) => {
-        balance -= doc[3]
+      new Promise(r=>{
+        while(await out.hasNext()){
+          const doc = await out.next()
+          balance -= doc.amount
+        }
+        r()
       })
     ])
-    sess.close()
     r(balance)
   })
 }
 exports.getUserByAddress = (address) => {
   return new Promise(async (r) => {
-    var sess = await client.getSession()
-    var users = sess.getSchema('kitcoin').getTable("users")
-    await users.select().where(`address='${address}'`).execute((i) => {
-      r(i)
-      sess.close()
-      return
-    })
-    r()
-    sess.close()
+    await client.connect()
+    const db = client.db('kitcoin')
+    const users = db.collection('users')
+    const search = await users.find({address:address})
+    if(await search.hasNext()){
+      r(await search.next())
+    } else {
+      r()
+    }
   })
 }
 exports.getUserByID = (uuid) => {
   return new Promise(async (r) => {
-    var sess = await client.getSession()
-    var users = sess.getSchema('kitcoin').getTable("users")
-    await users.select().where(`uuid='${uuid}'`).execute((i) => {
-      r(i)
-    })
-    r()
-    sess.close()
+    await client.connect()
+    const db = client.db('kitcoin')
+    const users = db.collection('users')
+    const search = await users.find({uuid})
+    if(await search.hasNext()){
+      r(await search.next())
+    } else {
+      r()
+    }
   })
 }
 exports.listUsers = () => {
   return new Promise(async (r) => {
-    var sess = await client.getSession()
-    var users = sess.getSchema('kitcoin').getTable('users')
+    await client.connect()
     var results = []
-    await users.select().execute((i) => {
-      results.push(i)
-    })
+    const db = client.db('kitcoin')
+    const users = db.collection('users')
+    const search = await users.find({})
+    while (await search.hasNext()){
+      results.push(await search.next())
+    }
     r(results)
-    sess.close()
   })
 }
 exports.listTransactions = () => {
   return new Promise(async (r) => {
-    var sess = await client.getSession()
-    var users = sess.getSchema('kitcoin').getTable('transactions')
+    await client.connect()
     var results = []
-    await users.select().execute((i) => {
-      results.push(i)
-    })
+    const db = client.db('kitcoin')
+    const transactions = db.collection('transactions')
+    const search = await transactions.find({})
+    while (await search.hasNext()){
+      results.push(await search.next())
+    }
     r(results)
-    sess.close()
   })
 }
 exports.grant = (id, permission) => {
   return new Promise(async (r, rj) => {
     if (!['admin', 'teacher', 'vendor'].includes(permission)) rj("Invalid permission")
-    var sess = await client.getSession()
-    await sess.sql('use kitcoin')
-    if (/[A-Za-z0-9]*\@[A-Za-z0-9]*\.[a-z]{3}/.test(id)) {
-      // 'id' is an email address
-      await sess.sql(`UPDATE users SET ${permission}=b'1' WHERE address='${id}'`).execute()
-    } else {
-      // 'id' is a UUID
-      await sess.sql(`UPDATE users SET ${permission}=b'1' WHERE uuid='${id}'`).execute()
-    }
+    await client.connect()
+    const db = client.db('kitcoin')
+    const users = db.collection('users')
+    await users.findOneAndUpdate({uuid:id},{$set:{role:permission}})
     r()
-    sess.close()
   })
 }
 exports.degrant = (id, permission) => {
   return new Promise(async (r, rj) => {
-    if (!['admin', 'teacher', 'vendor'].includes(permission)) rj("Invalid permission")
-    var sess = await client.getSession()
-    await sess.sql('use kitcoin')
-    if (/[A-Za-z0-9]*\@[A-Za-z0-9]*\.[a-z]{3}/.test(id)) {
-      // 'id' is an email address
-      await sess.sql(`UPDATE users SET ${permission}=b'0' WHERE address='${id}'`).execute()
-    } else {
-      // 'id' is a UUID
-      await sess.sql(`UPDATE users SET ${permission}=b'0' WHERE uuid='${id}'`).execute()
-    }
+    await client.connect()
+    const db = client.db('kitcoin')
+    const users = db.collection('users')
+    await users.findOneAndUpdate({uuid:id},{$set:{role:'student'}})
     r()
-    sess.close()
   })
 }
 exports.exec = (statement) => {
   return new Promise(async (r, rj) => {
-    console.log(`EXECUTING ${statement}`); // Arbitrary SQL statements are dangerous, let's make them really noisy
-    var sess = await client.getSession()
-    await sess.sql("USE kitcoin")
-    var query = await sess.sql(statement).execute().catch(rj)
-    r(query)
-    sess.close()
+    rj("RECORDS, WARNING: Arbitrary SQL call run on non-SQL Kitcoin variant.")
   })
 }

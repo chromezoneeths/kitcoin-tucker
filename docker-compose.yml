@@ -1,20 +1,18 @@
 version: '2'
 services:
-  sqldb:
-    image: "mysql"
+  mongodb:
+    image: "mongo"
     environment:
-      - MYSQL_ROOT_PASSWORD=%%&change-this-please
-      - MYSQL_DATABASE=kitcoin
-      - MYSQL_USER=kitcoin
-      - MYSQL_PASSWORD=please-change-this
+      - ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      - ME_CONFIG_MONGODB_ADMINPASSWORD: %%&change-this-please
     volumes:
-      - "kitcoindbvolume:/var/lib/mysql"
+      - "kitcoindbvolume:/data/db"
   kitcoin-main:
     build: .
     ports:
       - "9876:9876"
     links:
-      - "sqldb"
+      - "mongodb"
     environment:
       - DATABASE_ADDRESS=kitcoin-node_sqldb_1
       - DATABASE_USER=kitcoin

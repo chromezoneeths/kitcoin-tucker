@@ -60,10 +60,10 @@ async function session(ws) {
   var userQuery = await db.getUserByAddress(user.data.emailAddresses[0].value)
   var userID, address, name, admin
   if (userQuery != undefined) {
-    userID = userQuery[0]
-    address = userQuery[1]
-    name = userQuery[2]
-    admin = userQuery[3] == 1
+    userID = userQuery.uuid
+    address = userQuery.address
+    name = userQuery.name
+    admin = userQuery.role == admin
   } else {
     userID = uuid()
     admin = false // To make a user admin, run `UPDATE users SET admin=b'1' WHERE address='email';`
