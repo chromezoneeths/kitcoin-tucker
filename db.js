@@ -82,17 +82,17 @@ exports.getBalance = (uuid) => {
     await client.connect()
     const db = client.db('kitcoin')
     const transactions = db.collection('transactions')
-    const in = await transactions.find({recipient:uuid})
+    const rec = await transactions.find({recipient:uuid})
     const out = await transactions.find({sender:uuid})
     await Promise.all([
-      new Promise(r=>{
-        while(await in.hasNext()){
-          const doc = await in.next()
+      new Promise(async r=>{
+        while(await rec.hasNext()){
+          const doc = await rec.next()
           balance += doc.amount
         }
         r()
       }),
-      new Promise(r=>{
+      new Promise(async r=>{
         while(await out.hasNext()){
           const doc = await out.next()
           balance -= doc.amount
