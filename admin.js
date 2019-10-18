@@ -5,35 +5,15 @@ exports.handle = (message, ws) => {
     switch (message.procedure) {
       case "listUsers": { // Lists users; ignores body.
         var usersQuery = await db.listUsers()
-        var users = []
-        usersQuery.forEach((i) => {
-          users.push({
-            uuid: i[0],
-            address: i[1],
-            name: i[2],
-            admin: i[3] == 1,
-            teacher: i[4] == 1,
-            vendor: i[5] == 1
-          })
-        })
         ws.send(JSON.stringify({
           action: 'elevateResult',
           status: "ok",
-          contents: users
+          contents: usersQuery
         }))
         break;
       }
       case "listTransactions": { // Lists transactions; treats body as limit, if possible.
-        var transactionsQuery = await db.listTransactions()
-        var transactions = []
-        transactionsQuery.forEach((i) => {
-          transactions.push({
-            uuid: i[0],
-            sender: i[1],
-            recipient: i[2],
-            amount: i[3]
-          })
-        })
+        var transactions = await db.listTransactions()
         var limit
         try {
           limit = parseInt(message.body, 10)
