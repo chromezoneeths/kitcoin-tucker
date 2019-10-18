@@ -63,7 +63,7 @@ async function session(ws) {
     userID = userQuery.uuid
     address = userQuery.address
     name = userQuery.name
-    admin = userQuery.role == admin
+    admin = userQuery.role == 'admin'
   } else {
     userID = uuid()
     admin = false // To make a user admin, run `UPDATE users SET admin=b'1' WHERE address='email';`

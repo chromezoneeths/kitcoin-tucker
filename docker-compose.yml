@@ -14,7 +14,7 @@ services:
     links:
       - "mongodb"
     environment:
-      - DATABASE_ADDRESS=kitcoin-node_sqldb_1
+      - DATABASE_ADDRESS=mongodb://kitcoinnode_mongodb_1
       - DATABASE_USER=kitcoin
       - DATABASE_PORT=33060
       - DATABASE_PASSWORD=please-change-this
