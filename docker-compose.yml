@@ -3,8 +3,8 @@ services:
   mongodb:
     image: "mongo"
     environment:
-      - ME_CONFIG_MONGODB_ADMINUSERNAME: root
-      - ME_CONFIG_MONGODB_ADMINPASSWORD: %%&change-this-please
+      - ME_CONFIG_MONGODB_ADMINUSERNAME='root'
+      - ME_CONFIG_MONGODB_ADMINPASSWORD='%%&change-this-please'
     volumes:
       - "kitcoindbvolume:/data/db"
   kitcoin-main:
